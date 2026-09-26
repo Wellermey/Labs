@@ -46,7 +46,7 @@ def is_digit(n):
 def split_raw(raw_str):
     regular = re.compile(
         r"""
-        \d+(?:\.\d+)?|
+        \d+(?:\.\d+)?|,|
         [a-z]\w*|
         >=|<=|==|!=|<<|>>|
         [\+\-\*/<>&^\()|]
@@ -100,9 +100,9 @@ def to_reverse_polish(tokens):
         elif tokens[i] in functions:
             stack.extend(["(", tokens[i]])
             i += 1
-        elif tokens[i] == "max" or tokens[i] == "min":
-            countc = 0
-            counts = 1
+        elif tokens[i] == "max" or tokens[i] == "min":  #  считаем количество аргументов
+            countc = 1  # ','
+            counts = 1  # '()'
             j = i + 1
             while counts:
                 j += 1
@@ -110,7 +110,7 @@ def to_reverse_polish(tokens):
                     counts += 1
                 elif tokens[j] == ")":
                     counts -= 1
-                elif counts == 1:
+                elif tokens[j] == "," and counts == 1:
                     countc += 1
             stack.extend(["(", tokens[i] + str(countc)])
             i += 1
@@ -142,19 +142,19 @@ loper2 = {
     "&": lambda a, b: int(a) & int(b),
     "==": lambda a, b: int(a) == int(b),
     "!=": lambda a, b: int(a) != int(b),
-    ">=": lambda a, b: float(a) >= float(b),
-    "<=": lambda a, b: float(a) <= float(b),
-    "<": lambda a, b: float(a) < float(b),
-    ">": lambda a, b: float(a) > float(b),
+    ">=": lambda a, b: a >= b,
+    "<=": lambda a, b: a <= b,
+    "<": lambda a, b: a < b,
+    ">": lambda a, b: a > b,
     "<<": lambda a, b: int(a) << int(b),
     ">>": lambda a, b: int(a) >> int(b),
-    "+": lambda a, b: float(a) + float(b),
-    "-": lambda a, b: float(a) - float(b),
-    "*": lambda a, b: float(a) * float(b),
-    "/": lambda a, b: float(a) / float(b),
+    "+": lambda a, b: a + b,
+    "-": lambda a, b: a - b,
+    "*": lambda a, b: a * b,
+    "/": lambda a, b: a / b,
     "and": lambda a, b: int(a) and int(b),
-    "pow": lambda a, b: int(a) ** int(b),
-    "round": lambda a, b: round(float(a), int(b)),
+    "pow": lambda a, b: a**b,
+    "round": lambda a, b: round(a, int(b)),
 }
 
 
@@ -168,8 +168,8 @@ def calculate(tokens):
         elif e in loper1:
             stack.append(loper1[e](float(stack.pop())))
         elif e in loper2:
-            a = stack.pop()
-            b = stack.pop()
+            a = float(stack.pop())
+            b = float(stack.pop())
             stack.append(loper2[e](b, a))
         elif e[0:3] == "max":
             n = int(e[3:])
@@ -193,8 +193,8 @@ def calculate2(tokens):
         elif e in loper1:
             stack.append(loper1[e](float(stack.pop())))
         elif e in loper2:
-            a = stack.pop()
-            b = stack.pop()
+            a = float(stack.pop())
+            b = float(stack.pop())
             stack.append(loper2[e](a, b))
         elif e[0:3] == "max":
             n = int(e[3:])
@@ -208,20 +208,19 @@ def calculate2(tokens):
     return stack[0]
 
 
-raw_str = str(input())
+# Проверка корректность ввода
+def parser(tokens):
+    return True
+
+
+raw_str = str(input("Ввод:"))
 tokens = split_raw(raw_str)
-# print(tokens)
-if is_digit(tokens[-1]) or tokens[-1] == ")":
-    new_tokens = remove_m(tokens)
-    print(tokens)
-    if (
-        is_digit(new_tokens[0])
-        or new_tokens[0] == "m"
-        or new_tokens[0] in functions
-        or new_tokens[0] == "("
-    ):
-        print("Результат:", calculate(to_reverse_polish(new_tokens)))
-    else:
-        print("Результат:", calculate2(tokens))  # прямая
+new_tokens = remove_m(tokens)
+if "(" in tokens:
+    print("Результат:", calculate(to_reverse_polish(new_tokens)))
+elif tokens[0] in oper or tokens[0] in functions:
+    print("Результат:", calculate(tokens))
+elif tokens[-1] in oper or tokens[-1] in functions:
+    print("Результат:", calculate2(tokens))
 else:
-    print("Результат:", calculate(tokens))  # обратная
+    print("Результат:", calculate(to_reverse_polish(tokens)))
