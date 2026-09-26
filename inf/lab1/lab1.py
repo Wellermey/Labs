@@ -37,6 +37,42 @@ oper = {
     "m": 9,
 }
 
+loper1 = {
+    "sqrt": sqrt,
+    "abs": fabs,
+    "sin": sin,
+    "cos": cos,
+    "tan": tan,
+    "log": log,
+    "exp": exp,
+    "floor": floor,
+    "ceil": ceil,
+    "fact": factorial,
+    "log10": log10,
+    "m": lambda a: -a,
+}
+
+loper2 = {
+    "|": lambda a, b: int(a) | int(b),
+    "^": lambda a, b: int(a) ^ int(b),
+    "&": lambda a, b: int(a) & int(b),
+    "==": lambda a, b: int(a) == int(b),
+    "!=": lambda a, b: int(a) != int(b),
+    ">=": lambda a, b: a >= b,
+    "<=": lambda a, b: a <= b,
+    "<": lambda a, b: a < b,
+    ">": lambda a, b: a > b,
+    "<<": lambda a, b: int(a) << int(b),
+    ">>": lambda a, b: int(a) >> int(b),
+    "+": lambda a, b: a + b,
+    "-": lambda a, b: a - b,
+    "*": lambda a, b: a * b,
+    "/": lambda a, b: a / b,
+    "and": lambda a, b: int(a) and int(b),
+    "pow": lambda a, b: a**b,
+    "round": lambda a, b: round(a, int(b)),
+}
+
 
 def is_digit(n):
     return n.replace(".", "").replace("-", "").isdigit()
@@ -121,43 +157,6 @@ def to_reverse_polish(tokens):
     return output
 
 
-loper1 = {
-    "sqrt": sqrt,
-    "abs": fabs,
-    "sin": sin,
-    "cos": cos,
-    "tan": tan,
-    "log": log,
-    "exp": exp,
-    "floor": floor,
-    "ceil": ceil,
-    "fact": factorial,
-    "log10": log10,
-    "m": lambda a: -a,
-}
-
-loper2 = {
-    "|": lambda a, b: int(a) | int(b),
-    "^": lambda a, b: int(a) ^ int(b),
-    "&": lambda a, b: int(a) & int(b),
-    "==": lambda a, b: int(a) == int(b),
-    "!=": lambda a, b: int(a) != int(b),
-    ">=": lambda a, b: a >= b,
-    "<=": lambda a, b: a <= b,
-    "<": lambda a, b: a < b,
-    ">": lambda a, b: a > b,
-    "<<": lambda a, b: int(a) << int(b),
-    ">>": lambda a, b: int(a) >> int(b),
-    "+": lambda a, b: a + b,
-    "-": lambda a, b: a - b,
-    "*": lambda a, b: a * b,
-    "/": lambda a, b: a / b,
-    "and": lambda a, b: int(a) and int(b),
-    "pow": lambda a, b: a**b,
-    "round": lambda a, b: round(a, int(b)),
-}
-
-
 # Считаем обратную польскую
 def calculate(tokens):
     stack = []
@@ -208,7 +207,7 @@ def calculate2(tokens):
     return stack[0]
 
 
-# Проверка корректность ввода
+# Проверка корректности ввода
 def parser(tokens):
     return True
 
@@ -219,8 +218,8 @@ new_tokens = remove_m(tokens)
 if "(" in tokens:
     print("Результат:", calculate(to_reverse_polish(new_tokens)))
 elif tokens[0] in oper or tokens[0] in functions:
-    print("Результат:", calculate(tokens))
-elif tokens[-1] in oper or tokens[-1] in functions:
     print("Результат:", calculate2(tokens))
+elif tokens[-1] in oper or tokens[-1] in functions:
+    print("Результат:", calculate(tokens))
 else:
     print("Результат:", calculate(to_reverse_polish(tokens)))
