@@ -1,0 +1,8 @@
+{
+  "id": "lab1",
+  "name": "Интерпретатора арифметических действий",
+  "language": "python",
+  "type": "console",
+  "build": "",
+  "run": "python3 main.py"
+}
