@@ -20,33 +20,86 @@ void print_matrix(int **&matrix, int n) {
   }
 }
 
+double read2(int i, int j) {
+  int a = 0;
+  int m = 1;
+  int l = 0;
+  bool start = 1;
+  attron(COLOR_PAIR(4));
+  mvprintw(i, j, "%*s", 3, "");
+  refresh();
+  char c = getch();
+  while (start || (c != '\n')) {
+    if (start && c == '-') {
+      m = -1;
+      start = 0;
+      mvprintw(i, j + l++, "%c", c);
+    } else if ('0' <= c && c <= '9' &&
+               (-100 < (10 * abs(a) + (c - '0')) &&
+                (10 * a + m * (c - '0') < 1000))) {
+      start = 0;
+      a = 10 * a + m * (c - '0');
+      mvprintw(i, j + l++, "%c", c);
+    }
+    refresh();
+    c = getch();
+  }
+  attroff(COLOR_PAIR(4));
+
+  attron(COLOR_PAIR(5));
+  mvprintw(i, j, "%*d", 3, a);
+  refresh();
+  attroff(COLOR_PAIR(5));
+
+  return a;
+}
+
+void read_matrix(int **&matrix, int n) {
+  erase();
+  matrix = new int *[n];
+  for (int i = 0; i < n; matrix[i++] = new int[n]{0}) {
+  }
+  int maxs = 3;
+  for (int i = 0; i < 2 * n + 1; i++) {
+    mvprintw(1 + i, 2, "|");
+    mvprintw(1 + i, 2 + (maxs + 1) * n, "|");
+  }
+  for (int i = 0; i < n; i++) {
+    for (int j = 0; j < n; j++) {
+      attron(COLOR_PAIR(3));
+      mvprintw(2 + 2 * i, 3 + (maxs + 1) * j, "%*s", maxs, "");
+      attroff(COLOR_PAIR(3));
+    }
+  }
+  refresh();
+
+  for (int i = 0; i < n; i++)
+    for (int j = 0; j < n; j++) {
+      matrix[i][j] = read2(2 + 2 * i, 3 + (maxs + 1) * j);
+    }
+}
+
 void generate(int **&matrix, int n) {
   matrix = new int *[n];
   for (int i = 0; i < n; matrix[i++] = new int[n]{0}) {
   }
-
-  int i = 0, j = 0, k = 1, ri = 0, rj = 1;
-  while (k <= n * n) {
-    matrix[i][j] = k;
-    if (i + ri < 0 || i + ri >= n || j + rj < 0 || j + rj >= n ||
-        matrix[i + ri][j + rj]) {
-      rj += ri;
-      ri = rj - ri;
-      rj = ri - rj;
+  int k = 1, s = 1;
+  for (int j = 0; j < n; j++) {
+    for (int i = 0; i < n; i++) {
+      matrix[i][j] = k + s * i;
     }
-    i += ri;
-    j += rj;
-    k++;
+    s = -s;
+    k += (j % 2) ? 1 : 2 * n - 1;
   }
 }
 
-void print_determinant(int a) { mvprintw(6, 2, "Determinant = %d", a); }
+void print_determinant(int a) { mvprintw(10, 2, "Determinant = %d", a); }
 
 double read(const char *message) {
   erase();
   int a = 0;
   int m = 1;
-  bool start = true;
+  bool start = 0;
 
   printw("\n  %s", message);
 
@@ -70,8 +123,8 @@ double read(const char *message) {
 
 void render(int selected) {
   erase();
-  const char messages[2][100] = {"1) Generate", "2) Determinant"};
-  for (int i = 0; i < 2; i++)
+  const char messages[3][100] = {"1) Generate", "2) Determinant", "3) Enter"};
+  for (int i = 0; i < 3; i++)
     if (i == selected) {
       attron(COLOR_PAIR(2));
       mvprintw(1 + 2 * i, 2, "%s", messages[i]);
@@ -121,12 +174,15 @@ int main() {
   initscr();
   curs_set(0);
   noecho();
-  nodelay(stdscr, TRUE);
+  // nodelay(stdscr, TRUE);
   keypad(stdscr, TRUE);
   start_color();
   init_pair(1, COLOR_WHITE, COLOR_BLACK);
   bkgd(COLOR_PAIR(1));
   init_pair(2, COLOR_RED, COLOR_BLACK);
+  init_pair(3, COLOR_BLACK, COLOR_BLUE);
+  init_pair(4, COLOR_WHITE, COLOR_RED);
+  init_pair(5, COLOR_BLACK, COLOR_GREEN);
 
   int a = 4;
   int **matrix;
@@ -146,10 +202,10 @@ int main() {
     ch = getch();
     switch (ch) {
     case KEY_UP:
-      selected = abs(selected - 1) % 2;
+      selected = abs(selected - 1) % 3;
       break;
     case KEY_DOWN:
-      selected = abs(selected + 1) % 2;
+      selected = abs(selected + 1) % 3;
       break;
     case '\n':
       switch (selected) {
@@ -161,6 +217,12 @@ int main() {
       case 1:
         det = 1;
         _determinant = determinant(matrix, a);
+        break;
+      case 2:
+        det = 0;
+        a = read("Enter the matrix size: ");
+        read_matrix(matrix, a);
+        break;
         break;
       }
     }
