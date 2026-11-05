@@ -1,10 +1,16 @@
 #include <cmath>
-#include <math.h>
 #include <ncurses.h>
+#include <random>
 
 void print(char c) {
   printw("%c", c);
   refresh();
+}
+
+void del_matrix(int **&a, int n) {
+  for (int i = 0; i < n; i++)
+    delete[] a[i];
+  delete[] a;
 }
 
 void print_matrix(int **&matrix, int n) {
@@ -123,8 +129,9 @@ double read(const char *message) {
 
 void render(int selected) {
   erase();
-  const char messages[3][100] = {"1) Generate", "2) Determinant", "3) Enter"};
-  for (int i = 0; i < 3; i++)
+  const char messages[4][100] = {"1) Generate", "2) Determinant", "3) Enter",
+                                 "4) - Random"};
+  for (int i = 0; i < 4; i++)
     if (i == selected) {
       attron(COLOR_PAIR(2));
       mvprintw(1 + 2 * i, 2, "%s", messages[i]);
@@ -143,14 +150,9 @@ int determinant(int **matrix, int n) {
     for (int j = 0; j < n; j++)
       a[i][j] = matrix[i][j];
   }
-  int m = 1, s = 1, res = 1;
+  long long m = 1, s = 1, res = 1;
   for (int k = 0; k < n - 1; k++) {
-    if (a[k][k]) {
-      for (int i = k + 1; i < n; i++)
-        for (int j = k + 1; j < n; j++)
-          a[i][j] = (a[k][k] * a[i][j] - a[i][k] * a[k][j]) / m;
-      m = a[k][k];
-    } else {
+    if (!a[k][k]) {
       int p = k + 1;
       while (p < n && !a[p][k])
         p++;
@@ -161,12 +163,14 @@ int determinant(int **matrix, int n) {
       std::swap(a[k], a[p]);
       s = -s;
     }
+    for (int i = k + 1; i < n; i++)
+      for (int j = k + 1; j < n; j++)
+        a[i][j] = (a[k][k] * a[i][j] - a[i][k] * a[k][j]) / m;
+    m = a[k][k];
   }
   if (res)
     res = s * a[n - 1][n - 1];
-  for (int i = 0; i < n; i++)
-    delete[] a[i];
-  delete[] a;
+  del_matrix(a, n);
   return res;
 }
 
@@ -184,14 +188,19 @@ int main() {
   init_pair(4, COLOR_WHITE, COLOR_RED);
   init_pair(5, COLOR_BLACK, COLOR_GREEN);
 
+  // random
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<int> dist(1, 10);
+
   int a = 4;
   int **matrix;
 
   generate(matrix, a);
-  int ch;
+  int ch = 'a';
   int selected = 0;
   bool det = 0;
-  int _determinant = 0;
+  long long _determinant = 0;
 
   while (ch != 'q') {
     render(selected);
@@ -202,16 +211,19 @@ int main() {
     ch = getch();
     switch (ch) {
     case KEY_UP:
-      selected = abs(selected - 1) % 3;
+      selected = (selected + 3) % 4;
       break;
     case KEY_DOWN:
-      selected = abs(selected + 1) % 3;
+      selected = (selected + 1) % 4;
       break;
     case '\n':
       switch (selected) {
       case 0:
+        del_matrix(matrix, a);
         det = 0;
-        a = read("Enter the matrix size: ");
+        a = 0;
+        while (a < 4)
+          a = read("Enter the matrix size: ");
         generate(matrix, a);
         break;
       case 1:
@@ -219,16 +231,22 @@ int main() {
         _determinant = determinant(matrix, a);
         break;
       case 2:
+        del_matrix(matrix, a);
         det = 0;
-        a = read("Enter the matrix size: ");
+        a = 0;
+        while (a < 4)
+          a = read("Enter the matrix size: ");
         read_matrix(matrix, a);
         break;
+      case 3:
+        for (int i = 0; i < a; i++)
+          for (int j = 0; j < a; j++)
+            matrix[i][j] -= dist(gen);
         break;
       }
     }
   }
-
-  getch();
+  del_matrix(matrix, a);
   endwin();
   return 0;
 }
