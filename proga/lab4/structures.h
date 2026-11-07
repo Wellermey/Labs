@@ -1,16 +1,16 @@
 
 struct Date {
-  int d;
-  int m;
-  int y;
+  long long d;
+  long long m;
+  long long y;
 };
 
 struct Item_data {
-  int id;
+  long long id;
   char name[256];
-  int weight;
-  int price;
-  int amount;
+  long long weight;
+  long long price;
+  long long amount;
   Date date;
   bool discount;
 };

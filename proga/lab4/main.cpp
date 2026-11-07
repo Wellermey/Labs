@@ -1,12 +1,14 @@
 #include "structures.h"
+#include <cstdint>
+#include <cstdio>
 #include <fstream>
 #include <math.h>
 #include <ncurses.h>
 
-void render(int selected) {
+#define int long long
+
+void render(int selected, const char messages[6][100]) {
   erase();
-  const char messages[6][100] = {"1) Add",    "2) Remove", "3) Display",
-                                 "4) Search", "5) Save",   "6) Load"};
   for (int i = 0; i < 6; i++)
     if (i == selected) {
       attron(COLOR_PAIR(2));
@@ -35,7 +37,7 @@ Item_data read_data(int &err, const char *&message, int am[6]) {
       err = i + 1;
       message = "Empty";
     }
-  char s[20];
+  char s[30];
   mvinnstr(1, 17, data.name, am[0]);
   data.name[am[0]] = '\0';
   data.weight = 0;
@@ -44,11 +46,11 @@ Item_data read_data(int &err, const char *&message, int am[6]) {
   }
   data.price = 0;
   mvinnstr(5, 17, s, am[2]);
-  for (int i = 0; i < am[2]; data.price += data.price * 10 + (s[i++] - '0')) {
+  for (int i = 0; i < am[2]; data.price = data.price * 10 + (s[i++] - '0')) {
   }
   data.amount = 0;
   mvinnstr(7, 17, s, am[3]);
-  for (int i = 0; i < am[3]; data.amount += data.amount * 10 + (s[i++] - '0')) {
+  for (int i = 0; i < am[3]; data.amount = data.amount * 10 + (s[i++] - '0')) {
   }
   mvinnstr(9, 17, s, am[4]);
   if (am[4] != 8) {
@@ -65,7 +67,7 @@ Item_data read_data(int &err, const char *&message, int am[6]) {
     err = 5;
     message = "Must be dd.mm.yy";
   }
-  data.date = {d, m, y};
+  data.date = {d, m, y - 2000};
   mvinnstr(11, 17, s, am[5]);
   data.discount = s[0] == 'y';
 
@@ -83,7 +85,7 @@ void read_item(Item *&head, Item *&tail, int &id) {
   attroff(COLOR_PAIR(3));
   refresh();
   int selected = 0;
-  int ch = 'f';
+  int32_t ch = 'f';
   int am[6] = {0, 0, 0, 0, 0, 0};
   for (;;) {
     for (int i = 0; i < 6; i++)
@@ -172,11 +174,11 @@ void remove_item(Item *&head, Item *&tail) {
     return;
   }
   int a = 0;
-  int ch;
+  int32_t ch;
   while (a < 1 || a > c) {
     erase();
     a = 0;
-    printw("\n  Enter the number from 1 to %d:", c);
+    printw("\n  Enter the number from 1 to %lld:", c);
     refresh();
     ch = getch();
 
@@ -196,7 +198,7 @@ void remove_item(Item *&head, Item *&tail) {
   if (item->last)
     item->last->next = item->next;
   else
-    head = item;
+    head = item->next;
 
   if (item->next)
     item->next->last = item->last;
@@ -206,7 +208,199 @@ void remove_item(Item *&head, Item *&tail) {
   delete item;
 }
 
-int main() {
+void render_all(Item *head) {
+  erase();
+  printw("\n  %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s", 5, "Id", 10, "Name", 10,
+         "Weight", 10, "Price", 10, "Amount", 9, "Date", 9, "Discount", 5,
+         "Key");
+  Item *item = head;
+  int i = 3;
+  while (item) {
+    mvprintw(i, 2,
+             "\n  %-*lld%-*s%-*lld%-*lld%-*lld%02lld.%02lld.%02lld %-*s%-*lld",
+             5, i / 2, 10, item->data.name, 10, item->data.weight, 10,
+             item->data.price, 10, item->data.amount, item->data.date.d,
+             item->data.date.m, item->data.date.y, 9,
+             (item->data.discount) ? "YES" : "NO", 5, item->data.id);
+    i += 2;
+    item = item->next;
+  }
+
+  getch();
+}
+
+void search(Item *head) {
+  erase();
+  const char messages[6][100] = {"Name",   "Weight", "Price",
+                                 "Amount", "Date",   "Discount"};
+  int32_t ch = 'f';
+  int selected = 0;
+
+  while (ch != 'q') {
+    render(selected, messages);
+
+    ch = getch();
+    switch (ch) {
+    case KEY_UP:
+      selected = (selected + 5) % 6;
+      break;
+    case KEY_DOWN:
+      selected = (selected + 1) % 6;
+      break;
+    case '\n': {
+      char s[256];
+      int i = 0;
+      erase();
+      printw("\n  %s: ", messages[selected]);
+      echo();
+      ch = getch();
+      while (ch != '\n') {
+        s[i++] = ch;
+        ch = getch();
+      }
+      noecho();
+      erase();
+
+      bool ans[1000];
+      for (int i = 0; i < 1000; ans[i++] = 0) {
+      }
+      for (Item *item = head; item; item = item->next) {
+        char s2[256];
+        switch (selected) {
+        case 0:
+          snprintf(s2, 256, "%s", item->data.name);
+          break;
+        case 1:
+
+          snprintf(s2, 256, "%lld", item->data.weight);
+          break;
+        case 2:
+
+          snprintf(s2, 256, "%lld", item->data.price);
+          break;
+        case 3:
+
+          snprintf(s2, 256, "%lld", item->data.amount);
+          break;
+        case 4: {
+          Date date = item->data.date;
+          snprintf(s2, 256, "%lld%lld.%lld%lld.%lld%lld", date.d / 10,
+                   date.d % 10, date.m / 10, date.m % 10, date.y / 10,
+                   date.y % 10);
+          break;
+        }
+        case 5:
+
+          snprintf(s2, 256, "%s", (item->data.discount) ? "YES" : "NO");
+          break;
+        }
+        i = 0;
+        while (s[i] == s2[i] && i < 250)
+          i++;
+        if (i > 200 || s[i] == '\0' || s2[i] == '\0')
+          ans[item->data.id] = 1;
+      }
+      erase();
+      printw("\n  %-*s%-*s%-*s%-*s%-*s%-*s%-*s%-*s", 5, "Id", 10, "Name", 10,
+             "Weight", 10, "Price", 10, "Amount", 9, "Date", 9, "Discount", 5,
+             "Key");
+      Item *item = head;
+      i = 3;
+      while (item) {
+        if (ans[item->data.id]) {
+          mvprintw(
+              i, 2,
+              "\n  %-*lld%-*s%-*lld%-*lld%-*lld%02lld.%02lld.%02lld %-*s%-*lld",
+              5, i / 2, 10, item->data.name, 10, item->data.weight, 10,
+              item->data.price, 10, item->data.amount, item->data.date.d,
+              item->data.date.m, item->data.date.y, 9,
+              (item->data.discount) ? "YES" : "NO", 5, item->data.id);
+          i += 2;
+        }
+        item = item->next;
+      }
+      getch();
+      return;
+    }
+    }
+  }
+}
+
+void file_save(Item *head) {
+  int32_t ch;
+  char s[256];
+  int i = 0;
+  erase();
+  printw("\n  Enter the file name: ");
+  ch = getch();
+  while (ch != '\n') {
+    if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z') {
+      s[i++] = ch;
+      printw("%c", ch);
+    }
+    ch = getch();
+  }
+  s[i] = '.';
+  s[i + 1] = 'b';
+  s[i + 2] = 'i';
+  s[i + 3] = 'n';
+  s[i + 4] = '\0';
+
+  erase();
+  {
+    std::ofstream out(s, std::ios::binary);
+    for (Item *item = head; item; item = item->next)
+      out.write(reinterpret_cast<const char *>(&item->data), sizeof(Item_data));
+  }
+}
+
+int file_load(Item *&head, Item *&tail, int id) {
+  int newid = 0;
+  int32_t ch;
+  char s[256];
+  int i = 0;
+  erase();
+  printw("\n  Enter the file name: ");
+  ch = getch();
+  while (ch != '\n') {
+    if ('a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z') {
+      s[i++] = ch;
+      printw("%c", ch);
+    }
+    ch = getch();
+  }
+  s[i] = '.';
+  s[i + 1] = 'b';
+  s[i + 2] = 'i';
+  s[i + 3] = 'n';
+  s[i + 4] = '\0';
+
+  erase();
+
+  {
+    std::ifstream in(s, std::ios::binary);
+    if (!in.is_open()) {
+      return id;
+    }
+
+    while (head) {
+      Item *item = head->next;
+      delete head;
+      head = item;
+    }
+    tail = nullptr;
+
+    Item_data data;
+
+    while (in.read(reinterpret_cast<char *>(&data), sizeof(Item_data))) {
+      push_back(head, tail, data);
+      newid = std::max(newid, data.id);
+    }
+  }
+  return newid + 1;
+}
+
+int32_t main() {
   initscr();
   curs_set(0);
   noecho();
@@ -220,14 +414,17 @@ int main() {
   init_pair(4, COLOR_BLACK, COLOR_CYAN);
   init_pair(5, COLOR_BLACK, COLOR_RED);
 
-  int ch = 'a';
+  int32_t ch = 'a';
   int selected = 0;
   Item *head = nullptr;
   Item *tail = nullptr;
   int _id = 1;
 
+  const char messages[6][100] = {"1) Add",    "2) Remove", "3) Display",
+                                 "4) Search", "5) Save",   "6) Load"};
+
   while (ch != 'q') {
-    render(selected);
+    render(selected, messages);
 
     ch = getch();
     switch (ch) {
@@ -246,16 +443,16 @@ int main() {
         remove_item(head, tail);
         break;
       case 2:
-
+        render_all(head);
         break;
       case 3:
-
+        search(head);
         break;
       case 4:
-
+        file_save(head);
         break;
       case 5:
-
+        _id = file_load(head, tail, _id);
         break;
       }
     }
